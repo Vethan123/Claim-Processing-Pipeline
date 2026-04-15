@@ -1,4 +1,4 @@
-Multi-Agent Claim Processing Pipeline
+# Multi-Agent Claim Processing Pipeline
 
 An intelligent medical claim processing system built with **FastAPI** and **LangGraph**. This service automates the segregation of multi-page medical PDFs and utilizes specialized AI agents to extract identity, clinical, and billing information in parallel.
 
