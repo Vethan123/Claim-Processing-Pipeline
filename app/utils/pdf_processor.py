@@ -2,7 +2,6 @@ import fitz
 import os
 
 def process_pdf_to_images(pdf_path, output_folder="pdf_to_images"):
-    # Ensure the directory exists
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     

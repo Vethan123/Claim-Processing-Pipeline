@@ -1,10 +1,14 @@
-def aggregate_results(state):
+from app.schema.models import DocumentState
+
+def aggregate_results(state: DocumentState):
     """
     Final node in the LangGraph. 
-    Consolidates data from ID, Discharge, and Bill agents with deduplication.
+    Consolidates data from all agents with safe dictionary/object access.
     """
     raw_data = state.extracted_data 
     
+    print(f"DEBUG: Aggregator received {len(raw_data)} extraction results.")
+
     final_summary = {
         "patient_name": None,
         "hospital_name": None,
@@ -14,42 +18,52 @@ def aggregate_results(state):
         "admission_date": None
     }
     
-    # Using a set for diagnoses to automatically handle duplicates
     unique_diagnoses = set()
 
     for data in raw_data:
-        # 1. Name Resolution (Priority: ID Agent > Discharge > Bill)
-        if data.patient_name and not final_summary["patient_name"]:
-            final_summary["patient_name"] = data.patient_name.strip().title()
-            
-        # 2. Hospital Name (Capture the first valid one found)
-        if data.hospital_name and not final_summary["hospital_name"]:
-            final_summary["hospital_name"] = data.hospital_name.strip()
+        def get_val(obj, key):
+            if isinstance(obj, dict):
+                return obj.get(key)
+            return getattr(obj, key, None)
 
-        # 3. Policy Number (Specific to ID Agent)
-        if hasattr(data, 'policy_number') and data.policy_number:
-            final_summary["policy_number"] = data.policy_number
-
-        # 4. Admission Date (Specific to Discharge Agent)
-        if hasattr(data, 'date_of_admission') and data.date_of_admission:
-            final_summary["admission_date"] = data.date_of_admission
+        p_name = get_val(data, "patient_name")
+        if p_name and not final_summary["patient_name"]:
+            name = str(p_name).strip().title()
+            if len(name) > 2:
+                final_summary["patient_name"] = name
             
-        # 5. Financial Accumulation
-        if data.total_amount:
-            # We add because a PDF might have multiple "Itemized Bill" pages
-            final_summary["total_billed_amount"] += float(data.total_amount)
-            
-        # 6. Diagnosis Deduplication
-        if data.diagnosis:
-            # Clean and add to set
-            diag = data.diagnosis.strip().capitalize()
-            if diag.lower() != "null" and diag.lower() != "none":
-                unique_diagnoses.add(diag)
+        h_name = get_val(data, "hospital_name")
+        if h_name and not final_summary["hospital_name"]:
+            final_summary["hospital_name"] = str(h_name).strip()
 
-    # Convert set back to sorted list for the final JSON
+        pol = get_val(data, "policy_number")
+        if pol:
+            if not final_summary["policy_number"] or len(str(pol)) > 5:
+                final_summary["policy_number"] = pol
+
+        adm_date = get_val(data, "date_of_admission")
+        if adm_date and not final_summary["admission_date"]:
+            final_summary["admission_date"] = adm_date
+            
+        amt = get_val(data, "total_amount")
+        if amt:
+            try:
+                final_summary["total_billed_amount"] += float(amt)
+            except (ValueError, TypeError):
+                pass
+            
+        diag = get_val(data, "diagnosis")
+        if diag:
+            items = str(diag).split(',')
+            for item in items:
+                clean_diag = item.strip().capitalize()
+                if clean_diag.lower() not in ["null", "none", "n/a", "unknown", ""]:
+                    unique_diagnoses.add(clean_diag)
+
     final_summary["diagnoses"] = sorted(list(unique_diagnoses))
-    
-    # Round total to 2 decimal places to avoid float precision issues
     final_summary["total_billed_amount"] = round(final_summary["total_billed_amount"], 2)
 
-    return {"extracted_data": final_summary}
+    if not final_summary["patient_name"]:
+        final_summary["patient_name"] = "Information Not Found"
+
+    return {"final_result": final_summary}

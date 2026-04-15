@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Annotated, Any
+import operator
 
 class ExtractionResult(BaseModel):
     patient_name: Optional[str] = None
@@ -11,6 +12,7 @@ class ExtractionResult(BaseModel):
 
 class DocumentState(BaseModel):
     pdf_path: str
-    pages: List[str] = []        
+    pages: List[str]
     classifications: Dict[int, str] = {}
-    extracted_data: List[ExtractionResult] = []
+    extracted_data: Annotated[List[Any], operator.add] = [] 
+    final_result: Dict[str, Any] = {}
