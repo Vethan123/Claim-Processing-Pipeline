@@ -52,7 +52,7 @@ async def process_health_claim(
     finally:
         pass
 
-@app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {"status": "active", "model": os.getenv("SEGREGATION_MODEL")}
 
