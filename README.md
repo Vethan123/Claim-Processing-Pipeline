@@ -2,6 +2,8 @@
 
 An intelligent medical claim processing system built with **FastAPI** and **LangGraph**. This service automates the segregation of multi-page medical PDFs and utilizes specialized AI agents to extract identity, clinical, and billing information in parallel.
 
+Explanation link : https://www.loom.com/share/ed5184097084416db2ccb5048cc155b7
+
 ## Key Features
 
 * **Intelligent Segregation**: Uses a vision-based LLM to classify document pages into 9 distinct categories (IDs, Bills, Discharge Summaries, etc.).
