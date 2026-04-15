@@ -1,22 +1,17 @@
 SEGREGATION_PROMPT = """
-ACT AS: A medical document classification expert.
-TASK: Identify the document type for the provided image page.
+ACT AS: A medical document dispatcher for an insurance automation pipeline.
+TASK: Analyze the provided image and determine which extraction agent should process it.
 
-CLASSIFICATION RULES:
-1. claim_forms: Official insurance claim application forms.
-2. cheque_or_bank_details: Images of cancelled cheques, passbooks, or bank statements.
-3. identity_document: Government IDs (Aadhaar, PAN, Passport) or Insurance TPA cards.
-4. itemized_bill: Detailed break-up of costs/charges with individual line items.
-5. discharge_summary: Hospital document summarizing treatment, diagnosis, and stay details.
-6. prescription: Doctor's handwritten or printed advice for medicines.
-7. investigation_report: Lab results, X-rays, Blood tests, or Scans.
-8. cash_receipt: Small slips or receipts confirming a specific payment made.
-9. other: Any page that does not fit the above (e.g., blank pages, cover letters).
+CLASSIFICATION & ROUTING RULES:
+- If document is a Govt ID, PAN, or Insurance TPA card -> Return: id_agent
+- If document is a Discharge Summary or Admission Note -> Return: discharge_agent
+- If document is an Itemized Bill, Invoice, or Break-up of charges -> Return: bill_agent
+- If document is any OTHER medical document (Claim Form, Prescription, Lab Report, etc.) -> Return: default_agent
+- If document is blank, a cover page, or completely irrelevant -> Return: skip
 
 OUTPUT FORMAT:
-- Return ONLY the category name from the list above.
-- No markdown, no bolding, no explanation.
-- Example Output: itemized_bill
+- Return ONLY the agent name (id_agent, discharge_agent, bill_agent, default_agent, or skip).
+- No markdown, no explanation.
 """,
 IDENTITY_EXTRACTION_PROMPT = """
 ROLE: You are an expert Medical Registrar specializing in Insurance Verification.
@@ -81,5 +76,24 @@ JSON STRUCTURE:
     "diagnosis": null,
     "hospital_name": "string or null",
     "date_of_admission": null
+}
+"""
+DEFAULT_EXTRACTION_PROMPT = """
+ROLE: Medical Document Indexer.
+TASK: Extract any visible patient or hospital metadata from this general medical document.
+
+EXTRACTION RULES:
+- Scan the document for patient_name, hospital_name, and any dates.
+- Since this is a general document, many fields will be null.
+- If you see a 'Document Date', use it for date_of_admission.
+
+JSON STRUCTURE:
+{
+    "patient_name": "string or null",
+    "policy_number": null,
+    "total_amount": 0.0,
+    "diagnosis": "Summarize the document type (e.g., Lab Report, Claim Form)",
+    "hospital_name": "string or null",
+    "date_of_admission": "string or null"
 }
 """

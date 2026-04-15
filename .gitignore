@@ -20,7 +20,7 @@ Thumbs.db
 *.db
 
 uploads/
-temp/
+temp_*
 *.pdf
 
 .env
